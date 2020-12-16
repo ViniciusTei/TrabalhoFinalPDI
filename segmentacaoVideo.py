@@ -41,7 +41,7 @@ def findColor(img, lower, upper):
     return mask
 
 # Pega os contornos do jogadores e retorna o ponto x e y dele no video
-def getContours(img, image, cor, pontos, trackers):
+def getContours(img, image, cor):
      #Remove ruidos com a gaussiana.
     imagem_borrada = cv2.GaussianBlur(img, (5, 5), 0)
     
@@ -50,6 +50,7 @@ def getContours(img, image, cor, pontos, trackers):
     
     contours,hierarchy = cv2.findContours(imagem_borrada_e_limiarizada,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
     
+    rects = []
     for cnt in contours:
         #print(cnt)
         area = cv2.contourArea(cnt)
@@ -58,13 +59,9 @@ def getContours(img, image, cor, pontos, trackers):
             peri = cv2.arcLength(cnt,True)
             approx = cv2.approxPolyDP(cnt,0.02*peri,True)
             x, y, w, h = cv2.boundingRect(approx)
-            ponto_jogador = (int(x+w/2),int(y+h/2))
-            pontos.append([ponto_jogador, cor])
-            if(cor[0] == 255):
-                rect = (x, y, w, h)
-                
-                tracker = cv2.TrackerKCF_create()
-                trackers.add(tracker, image, rect)
+            rects.append((x, y, x+w, y+h))
+
+    return rects
 
 #desenha um circulo no ponto x, y passado
 def desenhaCaminho(image, pontos):
@@ -72,13 +69,9 @@ def desenhaCaminho(image, pontos):
         cv2.circle(image, point[0], 10, point[1], cv2.FILLED)
 
 def main():
-    trackers = cv2.MultiTracker_create()
-
+    ct = CentroidTracker()
     #Abre o vídeo gravado em disco
     camera = cv2.VideoCapture('run.mp4')
-
-    (sucesso, frame) = camera.read()
-
     #todos os pontos desenhados
     pontos = []
 
@@ -89,16 +82,8 @@ def main():
             #recomeca o video
             camera = cv2.VideoCapture('run.mp4')
             (sucesso, frame) = camera.read()
-
-        (success, boxes) = trackers.update(frame)
-
-        if success:
-            for box in boxes:
-                (x, y, w, h) = [int(v) for v in box]
-                cv2.rectangle(image, (x,y), (x+w,y+h), (0,255,0), 2)
         
         image = frame.copy()
-        novosPontos = []
 
         # arrays com lowers e upper das cores azul e vermelho do video
         lower_blue = np.array([96,188,175])
@@ -112,24 +97,32 @@ def main():
         mask_blue = findColor(image, lower_blue, upper_blue)
         
         #desenha contornos na imagem
-        getContours(mask_blue, image, (255,0,0), novosPontos, trackers)
+        bboxes_blue = getContours(mask_blue, image, (255,0,0))
         #getContours(mask_red, image, (0,0,255), novosPontos, boxes)
            
+        #loop over bouding boxes and draw them
+        for bb in bboxes_blue:
+            (x, y, w , h) = bb
+            cv2.rectangle(image, (x, y), (w, h),
+				(255, 0, 0), 2)
 
-        if(len(novosPontos) != 0):
-            for p in novosPontos:
-                pontos.append(p)
-        
-        # if(len(pontos) != 0):
-        #     desenhaCaminho(image, pontos)
+        objects = ct.update(bboxes_blue)
+        # loop over the tracked objects
+        for (objectID, centroid) in objects.items():
+            # draw both the ID of the object and the centroid of the
+            # object on the output frame
+            text = "ID {}".format(objectID)
+            cv2.putText(image, text, (centroid[0] - 10, centroid[1] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.circle(image, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
         #resultado do video ainda vai alterar
         res_blue = cv2.bitwise_and(image,image, mask= mask_blue)                                                                                                                                           
         #res_red = cv2.bitwise_and(image,image, mask= mask_blue)                
 
         img_stacked = stackImages(0.4, ([frame,mask_blue], [image,res_blue]))
-        cv2.imshow("Exibindo video: Time vermelho | Time azul", img_stacked)
-
+        #cv2.imshow("Exibindo video: Time vermelho | Time azul", img_stacked)
+        cv2.imshow("Result", image)
         key = cv2.waitKey(1) & 0xFF
 
         #Espera que a tecla 'q' seja pressionada para sair
