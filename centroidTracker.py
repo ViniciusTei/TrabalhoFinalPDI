@@ -17,6 +17,7 @@ class CentroidTracker():
         # need to deregister the object from tracking
         self.maxDisappeared = maxDisappeared
 
+
     def register(self, centroid):
         # when registering an object we use the next available object
         # ID to store the centroid
@@ -61,6 +62,7 @@ class CentroidTracker():
         if len(self.objects) == 0:
             for i in range(0, len(inputCentroids)):
                 self.register(inputCentroids[i])
+            
 
         # otherwise, are are currently tracking objects so we need to
         # try to match the input centroids to existing object
