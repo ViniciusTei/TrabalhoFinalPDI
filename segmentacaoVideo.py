@@ -56,7 +56,7 @@ def getContours(img, image, cor):
         #print(cnt)
         area = cv2.contourArea(cnt)
         #print(area)
-        if area<450:
+        if area<550:
             #cv2.drawContours(image, cnt, -1, (0, 255, 0), 3)
             peri = cv2.arcLength(cnt,True)
             approx = cv2.approxPolyDP(cnt,0.02*peri,True)
@@ -65,6 +65,7 @@ def getContours(img, image, cor):
 
     return rects
 
+#calcula a distancia do ponto atual com base no primeiro frame e retorna um dicionario com as distancias
 def calculaDistancia(initialDict, currentDict):
     dist = OrderedDict()
 
@@ -75,6 +76,7 @@ def calculaDistancia(initialDict, currentDict):
 
     return dist
 
+#calcula se a distancia esta aumentando ou diminuido
 def defineAtaqueOuDefesa(distancias):
     values = distancias.values()
     soma = 0
@@ -92,7 +94,7 @@ def defineAtaqueOuDefesa(distancias):
 def main():
     ct = CentroidTracker()
     #Abre o vídeo gravado em disco
-    camera = cv2.VideoCapture('run.mp4')
+    camera = cv2.VideoCapture('run2.mp4')
     first_object = OrderedDict()
     distancias = OrderedDict()
     firstFrame = True
@@ -105,9 +107,7 @@ def main():
         count_frames += 1
         
         if not sucesso: #final do vídeo
-            #recomeca o video
-            camera = cv2.VideoCapture('run.mp4')
-            (sucesso, frame) = camera.read()
+            break
         
         image = frame.copy()
 
