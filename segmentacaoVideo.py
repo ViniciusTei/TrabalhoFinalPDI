@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from centroidTracker import CentroidTracker
 from collections import OrderedDict
-from scipy.spatial import distance
+
 def stackImages(scale,imgArray):
     rows = len(imgArray)
     cols = len(imgArray[0])
@@ -83,7 +83,7 @@ def defineAtaqueOuDefesa(distancias):
     for value in values:
         soma += value
     
-    if soma > 0:
+    if soma/len(values) > 0:
         result = 'ATACANDO'
     else:
         result = 'DEFENDENDO'
@@ -94,12 +94,20 @@ def defineAtaqueOuDefesa(distancias):
 def main():
     ct = CentroidTracker()
     #Abre o vídeo gravado em disco
-    camera = cv2.VideoCapture('run2.mp4')
+    camera = cv2.VideoCapture('run.mp4')
+    #camera = cv2.VideoCapture('run2.mp4')
+    
+    #dicionarios que armazea os pontos das primeiras bouding boxes encontradas
     first_object = OrderedDict()
+
+    #dicionarios com as distancias da bb atual - bb inicial armazenada em first_object
     distancias = OrderedDict()
+    
     firstFrame = True
     count_frames = 0
+    
     result = 'Nothing'
+    
     while True:
         #read() retorna 1-Se houve sucesso e 2-O próprio frame
         (sucesso, frame) = camera.read()
@@ -126,11 +134,13 @@ def main():
         bboxes = getContours(mask_blue, image, (0,0,255))
 
         new_objects = ct.update(bboxes)
-        #loop over the tracked objects
+        
+        #no primeiro frame armazena uma copia dos objetos encontrados
         if firstFrame:
             first_object = new_objects.copy()
             firstFrame = False
         else:
+            #calcula as distancias
             distancias = calculaDistancia(first_object, new_objects)
             if count_frames == 30:
                 #analiza ataque ou defesa
@@ -161,6 +171,8 @@ def main():
         #Espera que a tecla 'q' seja pressionada para sair
         if key == ord("q"):
             break
+        if key == ord('p'): #pause video
+            cv2.waitKey(-1)
 
     cv2.destroyAllWindows()
 
