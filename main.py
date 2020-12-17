@@ -94,8 +94,8 @@ def defineAtaqueOuDefesa(distancias):
 def main():
     ct = CentroidTracker()
     #Abre o vídeo gravado em disco
-    camera = cv2.VideoCapture('run.mp4')
-    #camera = cv2.VideoCapture('run2.mp4')
+    camera = cv2.VideoCapture('videos/run.mp4')
+    #camera = cv2.VideoCapture('videos/run2.mp4')
     
     #dicionarios que armazea os pontos das primeiras bouding boxes encontradas
     first_object = OrderedDict()
